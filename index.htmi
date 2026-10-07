@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>テスト納品テキスト作成ツール</title>
+  <style>
+    :root {
+      --navy: #16233f;
+      --blue: #2563eb;
+      --blue-dark: #1d4ed8;
+      --bg: #f4f7fb;
+      --panel: #ffffff;
+      --line: #dce3ee;
+      --text: #182230;
+      --muted: #64748b;
+      --success: #16803c;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", "Yu Gothic UI", "Yu Gothic", Meiryo, sans-serif;
+      line-height: 1.7;
+    }
+
+    header {
+      background: var(--navy);
+      color: #fff;
+      padding: 25px 20px;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.16);
+    }
+
+    header h1 {
+      max-width: 1080px;
+      margin: 0 auto;
+      font-size: clamp(21px, 3vw, 29px);
+      letter-spacing: 0.03em;
+    }
+
+    main {
+      width: min(1080px, calc(100% - 32px));
+      margin: 28px auto 48px;
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: 0 8px 24px rgba(30, 41, 59, 0.06);
+    }
+
+    h2 {
+      margin: 0 0 20px;
+      font-size: 19px;
+      color: var(--navy);
+    }
+
+    .field { margin-bottom: 17px; }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    input, textarea {
+      width: 100%;
+      border: 1px solid #bdc8d8;
+      border-radius: 9px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+      font-size: 16px;
+      padding: 11px 12px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    textarea {
+      min-height: 116px;
+      resize: vertical;
+    }
+
+    input:focus, textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.13);
+    }
+
+    .preview {
+      min-height: 460px;
+      margin: 0;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fbfcfe;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font: inherit;
+      font-size: 15px;
+      color: #1f2937;
+    }
+
+    .copy-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 9px;
+      background: var(--blue);
+      color: #fff;
+      padding: 12px 24px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.05s;
+    }
+
+    button:hover { background: var(--blue-dark); }
+    button:active { transform: translateY(1px); }
+
+    #copyStatus {
+      min-height: 1.5em;
+      color: var(--success);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    @media (max-width: 800px) {
+      main { grid-template-columns: 1fr; }
+      .panel { padding: 19px; }
+      .preview { min-height: 390px; }
+      button { width: 100%; }
+      .copy-row { flex-direction: column; align-items: stretch; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>テスト納品テキスト作成ツール</h1>
+  </header>
+
+  <main>
+    <section class="panel" aria-labelledby="inputTitle">
+      <h2 id="inputTitle">入力内容</h2>
+
+      <div class="field">
+        <label for="videoTitle">動画タイトル</label>
+        <input id="videoTitle" type="text" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label for="videoUrl">テスト動画URL</label>
+        <input id="videoUrl" type="url" inputmode="url" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label for="thumbnailUrl">サムネURL</label>
+        <input id="thumbnailUrl" type="url" inputmode="url" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label for="password">PW</label>
+        <input id="password" type="text" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label for="deadline">DL期限</label>
+        <input id="deadline" type="date">
+      </div>
+
+      <div class="field">
+        <label for="notes">備考欄</label>
+        <textarea id="notes"></textarea>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="previewTitle">
+      <h2 id="previewTitle">作成された文章</h2>
+      <div id="preview" class="preview" aria-live="polite"></div>
+      <div class="copy-row">
+        <button id="copyButton" type="button">文章をコピー</button>
+        <span id="copyStatus" aria-live="polite"></span>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const fields = {
+      videoTitle: document.getElementById('videoTitle'),
+      videoUrl: document.getElementById('videoUrl'),
+      thumbnailUrl: document.getElementById('thumbnailUrl'),
+      password: document.getElementById('password'),
+      deadline: document.getElementById('deadline'),
+      notes: document.getElementById('notes')
+    };
+
+    const preview = document.getElementById('preview');
+    const copyButton = document.getElementById('copyButton');
+    const copyStatus = document.getElementById('copyStatus');
+
+    function toDateInputValue(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function setInitialDeadline() {
+      const date = new Date();
+      date.setDate(date.getDate() + 5);
+      fields.deadline.value = toDateInputValue(date);
+    }
+
+    function formatJapaneseDate(value) {
+      if (!value) return '';
+      const [year, month, day] = value.split('-').map(Number);
+      const date = new Date(year, month - 1, day);
+      const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+      return `${month}月${day}日（${weekdays[date.getDay()]}）`;
+    }
+
+    function createText() {
+      const title = fields.videoTitle.value.trim();
+      const videoUrl = fields.videoUrl.value.trim();
+      const thumbnailUrl = fields.thumbnailUrl.value.trim();
+      const password = fields.password.value.trim();
+      const deadline = formatJapaneseDate(fields.deadline.value);
+      const notes = fields.notes.value.trim();
+
+      const lines = [
+        'おつかれさまです。',
+        `${title || '動画タイトル'}のテスト納品をさせていただきます。`,
+        '',
+        '下記URLよりダウンロードの上ご確認お願いいたします。',
+        '【動画】',
+        videoUrl,
+        '【サムネ】',
+        thumbnailUrl,
+        `パスワードは${password || 'PW'}となっており、ダウンロード期限は${deadline || 'DL期限'}までとなっております。`
+      ];
+
+      if (notes) {
+        lines.push('', notes);
+      }
+
+      lines.push('', 'お忙しいところ大変恐縮ですが、ご確認の程お願いいたします。');
+      return lines.join('\n');
+    }
+
+    function updatePreview() {
+      preview.textContent = createText();
+      copyStatus.textContent = '';
+    }
+
+    async function copyText() {
+      const text = createText();
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch (error) {
+        const area = document.createElement('textarea');
+        area.value = text;
+        area.style.position = 'fixed';
+        area.style.opacity = '0';
+        document.body.appendChild(area);
+        area.select();
+        document.execCommand('copy');
+        area.remove();
+      }
+
+      copyStatus.textContent = 'コピーしました。';
+      window.setTimeout(() => { copyStatus.textContent = ''; }, 2500);
+    }
+
+    setInitialDeadline();
+    Object.values(fields).forEach(field => field.addEventListener('input', updatePreview));
+    copyButton.addEventListener('click', copyText);
+    updatePreview();
+  </script>
+</body>
+</html>
